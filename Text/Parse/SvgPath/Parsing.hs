@@ -48,7 +48,7 @@ svgPath = do spaces
 p_moveto_drawto_command_group :: CharParser () Path
 p_moveto_drawto_command_group = do m <- p_moveto
                                    spaces
-                                   ds <- option [] $ p_drawto_command `sepBy` spaces
+                                   ds <- p_drawto_command `sepEndBy` spaces
                                    return $ m ++ (concat ds)
 
 p_drawto_command :: CharParser () Path
@@ -57,24 +57,22 @@ p_drawto_command = choice [ p_lineto <?> "LineTo"
                           ]
 
 p_moveto :: CharParser () Path
-p_moveto = do command <- oneOf "Mm" <?> "move command"
+p_moveto = do command <- oneOf "Mm" <* spaces
               let isRelative = command == 'm'
                   mkLineto (x, y) = LineTo isRelative (x, y)
-              spaces
-              (x, y) <- p_coordinate_pair
-              ls <- (optional p_comma_wsp) *> (p_coordinate_pair `sepBy` p_comma_wsp)
-              let ls' = map mkLineto ls
-              return $ [MoveTo isRelative (x, y)] ++ ls'
+              coords <- p_coordinate_pair `sepEndBy` p_comma_wsp
+              let (x, y) = head coords
+                  move = MoveTo isRelative (x, y)
+              return $ move:(map mkLineto (tail coords))
 
 p_lineto :: CharParser () Path
-p_lineto = do command <- oneOf "Ll"
+p_lineto = do command <- oneOf "Ll" <* spaces
               let isRelative = command == 'l'
                   mkLineto (x, y) = LineTo isRelative (x, y)
-              spaces
-              (x, y) <- p_coordinate_pair
-              ls <- option [] $ (optional p_comma_wsp) *> (p_coordinate_pair `sepBy` p_comma_wsp)
-              let ls' = map mkLineto ls
-              return $ [LineTo isRelative (x, y)] ++ ls'
+              coords <- p_coordinate_pair `sepEndBy` p_comma_wsp
+              let (x, y) = head coords
+                  line = LineTo isRelative (x, y)
+              return $ line:(map mkLineto (tail coords))
 
 p_closepath :: CharParser () Path
 p_closepath = oneOf "Zz" >> return [ClosePath]
@@ -97,4 +95,4 @@ p_float = do s <- getInput
                _         -> empty
 
 p_number :: CharParser () Double
-p_number = (char '+' <|> pure ' ') *> p_float
+p_number = (optional $ char '+') *> (p_float <?> "number")

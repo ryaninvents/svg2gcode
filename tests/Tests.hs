@@ -60,19 +60,37 @@ main = hspec $ do
         (parse p_moveto "error" "M5,6") `shouldBe` (Right [MoveTo False (5.0,6.0)])
       it "parses moveto with space-separated coords" $ do
         (parse p_moveto "error" "M5 6") `shouldBe` (Right [MoveTo False (5.0,6.0)])
-      it "handles implicit following lineto" $ do
+      it "handles implicit following lineto (space)" $ do
         (parse p_moveto "error" "M5,6 7,8") `shouldBe` (Right [ MoveTo False (5.0, 6.0)
                                                               , LineTo False (7.0, 8.0)
                                                               ])
+      it "handles implicit following lineto (comma)" $ do
+        (parse p_moveto "error" "M5,6,7,8") `shouldBe` (Right [ MoveTo False (5.0, 6.0)
+                                                              , LineTo False (7.0, 8.0)
+                                                              ])
+      it "handles implicit following linetos (space)" $ do
+        (parse p_moveto "error" "M5,6 7,8 9,10") `shouldBe` (Right [ MoveTo False (5.0, 6.0)
+                                                                   , LineTo False (7.0, 8.0)
+                                                                   , LineTo False (9.0, 10.0)
+                                                                   ])
+      it "handles implicit following linetos (comma)" $ do
+        (parse p_moveto "error" "M5,6,7,8,9,10") `shouldBe` (Right [ MoveTo False (5.0, 6.0)
+                                                                   , LineTo False (7.0, 8.0)
+                                                                   , LineTo False (9.0, 10.0)
+                                                                   ])
     describe "with space after command" $ do
       it "parses moveto space-separated coords" $ do
         (parse p_moveto "error" "M 5 6") `shouldBe` (Right [MoveTo False (5.0,6.0)])
       it "parses moveto comma-separated coords" $ do
         (parse p_moveto "error" "M 5,6") `shouldBe` (Right [MoveTo False (5.0,6.0)])
-      it "handles implicit following lineto" $ do
+      it "handles implicit following lineto (space)" $ do
         (parse p_moveto "error" "M 5,6 7,8") `shouldBe` (Right [ MoveTo False (5.0, 6.0)
                                                                , LineTo False (7.0, 8.0)
                                                                ])
+      it "handles implicit following lineto (comma)" $ do
+        (parse p_moveto "error" "M 5,6,7,8") `shouldBe` (Right [ MoveTo False (5.0, 6.0)
+                                                              , LineTo False (7.0, 8.0)
+                                                              ])
   describe "p_lineto" $ do
     describe "no space after command" $ do
       it "parses moveto with comma-separated coords" $ do
@@ -92,21 +110,50 @@ main = hspec $ do
         (parse p_lineto "error" "L 5,6 7,8") `shouldBe` (Right [ LineTo False (5.0, 6.0)
                                                                , LineTo False (7.0, 8.0)
                                                                ])
-
+  describe "p_closepath" $ do
+    it "should understand Z" $ do
+      (parse p_closepath "error" "Z") `shouldBe` (Right [ClosePath])
+    it "should understand z" $ do
+      (parse p_closepath "error" "z") `shouldBe` (Right [ClosePath])
+  describe "p_drawto_command" $ do
+    describe "should understand L commands" $ do
+      describe "no space after command" $ do
+        it "parses moveto with comma-separated coords" $ do
+          (parse p_drawto_command "error" "L5,6") `shouldBe` (Right [LineTo False (5.0,6.0)])
+        it "parses moveto with space-separated coords" $ do
+          (parse p_drawto_command "error" "L5 6") `shouldBe` (Right [LineTo False (5.0,6.0)])
+        it "handles implicit following lineto" $ do
+          (parse p_drawto_command "error" "L5,6 7,8") `shouldBe` (Right [ LineTo False (5.0, 6.0)
+                                                                , LineTo False (7.0, 8.0)
+                                                                ])
+      describe "with space after command" $ do
+        it "parses moveto space-separated coords" $ do
+          (parse p_drawto_command "error" "L 5 6") `shouldBe` (Right [LineTo False (5.0,6.0)])
+        it "parses moveto comma-separated coords" $ do
+          (parse p_drawto_command "error" "L 5,6") `shouldBe` (Right [LineTo False (5.0,6.0)])
+        it "handles implicit following lineto" $ do
+          (parse p_drawto_command "error" "L 5,6 7,8") `shouldBe` (Right [ LineTo False (5.0, 6.0)
+                                                                 , LineTo False (7.0, 8.0)
+                                                                 ])
+    describe "should understand Z commands" $ do
+      it "should understand Z" $ do
+        (parse p_drawto_command "error" "Z") `shouldBe` (Right [ClosePath])
+      it "should understand z" $ do
+        (parse p_drawto_command "error" "z") `shouldBe` (Right [ClosePath])
   describe "p_moveto_drawto_command_group" $ do
-      it "parses just a moveto" $ do
-        (parse p_moveto_drawto_command_group "error" "M 5,6") `shouldBe` (Right [MoveTo False (5.0,6.0)])
-      it "parses a moveto followed by a lineto" $ do
-        (parse p_moveto_drawto_command_group "error" "M 5,6 L 7,8") `shouldBe` (Right [ MoveTo False (5.0,6.0)
-                                                                                      , LineTo False (7.0,8.0)
-                                                                                      ])
-      it "parses a moveto followed by multiple linetos" $ do
-        (parse p_moveto_drawto_command_group "error" "M 5,6 L 7,8 L 9,10") `shouldBe` (Right [ MoveTo False (5.0,6.0)
-                                                                                             , LineTo False (7.0,8.0)
-                                                                                             , LineTo False (9.0,10.0)
-                                                                                             ])
-      it "parses a moveto, an implicit lineto, and an explicit lineto" $ do
-        (parse p_moveto_drawto_command_group "error" "M 5,6 9,10 L 7,8") `shouldBe` (Right [ MoveTo False (5.0, 6.0)
-                                                                                           , LineTo False (9.0, 10.0)
-                                                                                           , LineTo False (7.0, 8.0)
+    it "parses just a moveto" $ do
+      (parse p_moveto_drawto_command_group "error" "M 5,6") `shouldBe` (Right [MoveTo False (5.0,6.0)])
+    it "parses a moveto followed by a lineto" $ do
+      (parse p_moveto_drawto_command_group "error" "M 5,6 L 7,8") `shouldBe` (Right [ MoveTo False (5.0,6.0)
+                                                                                    , LineTo False (7.0,8.0)
+                                                                                    ])
+    it "parses a moveto followed by multiple linetos" $ do
+      (parse p_moveto_drawto_command_group "error" "M 5,6 L 7,8 L 9,10") `shouldBe` (Right [ MoveTo False (5.0,6.0)
+                                                                                           , LineTo False (7.0,8.0)
+                                                                                           , LineTo False (9.0,10.0)
                                                                                            ])
+    it "parses a moveto, an implicit lineto, and an explicit lineto" $ do
+      (parse p_moveto_drawto_command_group "error" "M 5,6 9,10 L 7,8") `shouldBe` (Right [ MoveTo False (5.0, 6.0)
+                                                                                         , LineTo False (9.0, 10.0)
+                                                                                         , LineTo False (7.0, 8.0)
+                                                                                         ])
