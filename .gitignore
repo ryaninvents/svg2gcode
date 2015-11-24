@@ -1,2 +1,4 @@
 dist/
 .*.sw*
+.sw*
+samples/*.gcode
