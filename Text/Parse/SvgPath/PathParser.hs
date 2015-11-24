@@ -17,6 +17,7 @@ module Text.Parse.SvgPath.PathParser
 , instructionBounds
 , convertToAbsolute
 , scaleToFit
+, dumbGcode
 ) where
 
 import Control.Applicative hiding (many, optional, (<|>))
@@ -47,7 +48,15 @@ instructionBounds pt _ = (pt, pt)
 
 convertToAbsolute :: Path -> Path
 convertToAbsolute p = newPath
-  where newPath = convertToAbsolute' (0.0, 0.0) p p
+  where newPath = convertToAbsolute' (0.0, 0.0) p' p'
+        p' = trimExtraMoves p
+
+trimExtraMoves [] = []
+trimExtraMoves (x:xs) = xs'
+  where xs' = trimExtra x xs
+        trimExtra x [] = [x]
+        trimExtra (MoveTo _ _) (c@(MoveTo _ _):xs) = trimExtra c xs
+        trimExtra c (x:xs) = c:(trimExtra x xs)
 
 -- Convert to absolute coordinates, starting at the given origin and using the given
 -- moveto-command-group. Outputs the transformed path
@@ -104,6 +113,10 @@ scaleToFit' s (c:cs) = (scale c):(scaleToFit' s cs)
         scale (SmoothQuadraticBezierCurveTo rel ca) = SmoothQuadraticBezierCurveTo rel (s ca)
         scale (EllipticalArcTo cr ro lg sw ca) = EllipticalArcTo (s cr) ro lg sw (s ca)
         scale ClosePath = ClosePath
+
+dumbGcode (MoveTo _ (x, y)) = "G0 Z1\nG0 X" ++ (show x) ++ " Y" ++ (show y)
+dumbGcode (LineTo _ (x, y)) = "G0 Z0\nG0 X" ++ (show x) ++ " Y" ++ (show y)
+dumbGcode _ = ""
 
 boundsScaleAndCenter :: Bounds -> Bounds -> Coordinates -> Coordinates
 boundsScaleAndCenter target@((xmin',ymin'),(xmax',ymax')) original@((xmin,ymin),(xmax,ymax)) =

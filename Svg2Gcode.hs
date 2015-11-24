@@ -13,6 +13,7 @@ import Text.Parse.SvgPath.PathParser
   , convertToAbsolute
   , pathBounds
   , scaleToFit
+  , dumbGcode
   )
 
 getDoc = readDocument [] ""
@@ -31,6 +32,7 @@ main = do
       bounds = pathBounds path
   let path' = scaleToFit printBed path
   putStrLn $ "; New bounds " ++ (show $ pathBounds path')
+  putStrLn $ intercalate "\n" (map dumbGcode path')
 
 selectAllPaths :: ArrowXml a => a XmlTree String
 selectAllPaths = deep
