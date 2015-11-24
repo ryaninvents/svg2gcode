@@ -12,6 +12,13 @@ module Text.Parse.SvgPath.Parsing
 , PathInstruction
   ( MoveTo
   , LineTo
+  , HorizontalLineTo
+  , VerticalLineTo
+  , CurveTo
+  , SmoothCurveTo
+  , QuadraticBezierCurveTo
+  , SmoothQuadraticBezierCurveTo
+  , EllipticalArcTo
   , ClosePath
   )
 , Path
@@ -29,8 +36,8 @@ data PathInstruction = MoveTo Bool Coordinates
                      | CurveTo Bool Coordinates Coordinates Coordinates
                      | SmoothCurveTo Bool Coordinates Coordinates
                      | QuadraticBezierCurveTo Bool Coordinates Coordinates
-                     | SmoothQuadraticBezierCurveTo Bool Coordinates Coordinates
-                     | EllipticalArc Double Double Double Bool Bool Coordinates
+                     | SmoothQuadraticBezierCurveTo Bool Coordinates
+                     | EllipticalArcTo Coordinates Double Bool Bool Coordinates
                      | ClosePath
                      deriving (Show, Eq)
 
@@ -40,8 +47,7 @@ type Coordinates = (Double, Double)
 -- Parser modeled after http://www.w3.org/TR/SVG/paths.html#PathDataBNF
 svgPath :: CharParser () Path
 svgPath = do spaces 
-             paths <- p_moveto_drawto_command_group `sepBy` spaces
-             spaces
+             paths <- p_moveto_drawto_command_group `sepEndBy` spaces
              eof
              return $ concat paths
 

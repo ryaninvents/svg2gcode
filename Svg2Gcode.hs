@@ -6,25 +6,31 @@ import Text.XML.HXT.Core
 import Text.ParserCombinators.Parsec
 import Data.List (intercalate)
 
-import Text.Parse.SvgPath.PathParser (Path, PathInstruction, parsePath)
+import Text.Parse.SvgPath.PathParser
+  ( Path
+  , PathInstruction
+  , parsePath
+  , convertToAbsolute
+  , pathBounds
+  , scaleToFit
+  )
 
 getDoc = readDocument [] ""
+
+printBed = ((-90.0,-90.0),(90.0,90.0))
 
 main :: IO ()
 main = do
   result <- runX (getDoc >>> selectAllPaths)
-  case result of
-    []  -> putStrLn "No paths found"
-    p:_ -> case parsePath p of
-             Left err -> putErrLn $ "ERR\n" ++ p ++ "\n" ++ (replicate n ' ') ++ "^\n" ++ message
-               where pos = errorPos err
-                     n = (sourceColumn pos) - 1
-                     nSkip = max 0 (n - 60)
-                     nSpace = min n 60
-                     message = show err
-                     p' = take (n + 10) p
-                     putErrLn = hPutStrLn stderr
-             Right p  -> putStrLn $ show p
+  let nonZeroLength [] = False
+      nonZeroLength _ = True
+      pathFromEither p = case parsePath p of Left err -> []
+                                             Right p -> p
+      paths = filter nonZeroLength $ map pathFromEither result
+      path = concat $ map convertToAbsolute paths
+      bounds = pathBounds path
+  let path' = scaleToFit printBed path
+  putStrLn $ "; New bounds " ++ (show $ pathBounds path')
 
 selectAllPaths :: ArrowXml a => a XmlTree String
 selectAllPaths = deep
